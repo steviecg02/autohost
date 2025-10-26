@@ -13,7 +13,7 @@ Replace $600+/month in fragmented tools and $10k+ in courses. Get your 3 hours b
 Read these documents to understand what you're building:
 
 - **[docs/product/PRODUCT_STORY.md](docs/product/PRODUCT_STORY.md)** - Why this exists, the problem it solves, market opportunity
-- **[docs/product/SYSTEM_ARCHITECTURE.md](docs/product/SYSTEM_ARCHITECTURE.md)** - Complete technical architecture and components
+- **[docs/product/PLATFORM_VISION.md](docs/product/PLATFORM_VISION.md)** - High-level platform vision and components
 - **[docs/product/MY_STORY.md](docs/product/MY_STORY.md)** - Founder's journey and context
 
 ## Current State
@@ -204,7 +204,7 @@ The platform consists of:
 - **Notification Service** - Mobile connectivity and approvals
 - **Visualization Layer** - Decision intelligence
 
-See [SYSTEM_ARCHITECTURE.md](docs/product/SYSTEM_ARCHITECTURE.md) for complete details.
+See [PLATFORM_VISION.md](docs/product/PLATFORM_VISION.md) for complete details.
 
 ## Key Principle
 

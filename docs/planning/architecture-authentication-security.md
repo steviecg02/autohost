@@ -1,8 +1,10 @@
 # Authentication & Security Architecture
 
-**Status**: Feature Specification - To Be Implemented
+**Status**: Feature Specification - In Progress
 **Created**: October 25, 2025
+**Last Updated**: October 25, 2025
 **Applies To**: All services (org-service, sync-airbnb, sync-hostaway, work-service, future services)
+**Current Focus**: Building for solo use (Stephen), multi-tenant ready for future customers
 
 ---
 
@@ -50,28 +52,42 @@ This platform is a **business operating system** that manages sensitive business
 
 **Current Implementation**: ✅ Implementing Now (Phase 1)
 
-**JWT Payload**:
+**JWT Payload (Phase 1 - Minimal)**:
 
 ```json
 {
-  "sub": "user_id", // User identifier
-  "org_id": "uuid", // Organization (tenant)
-  "department_id": "uuid", // User's department
-  "role_id": "uuid", // User's role
-  "is_owner": true, // Organization owner flag
+  "sub": "user_id", // User identifier ('sub' is JWT standard for 'subject')
+  "org_id": "uuid", // Organization (tenant) - CRITICAL for multi-tenancy
   "email": "user@example.com", // User email
-  "permissions": [], // RBAC permissions (Phase 2)
-  "account_ids": [], // Multi-account access (Phase 3)
-  "project_ids": [], // Project-based access (Phase 3)
-  "exp": 1234567890 // Token expiration
+  "is_owner": true, // Organization owner flag
+  "exp": 1234567890 // Token expiration (Unix timestamp)
 }
 ```
+
+**Token TTL (Phase 1)**: 7 days - Good balance of security and UX for solo use
+
+**On Expiration (Phase 1)**: User redirected to login page (no refresh token in Phase 1)
+
+**Token Strategy (Phase 2 - Before Customers)**:
+
+- **Access token**: 15 minutes (short-lived for security)
+- **Refresh token**: 30 days (long-lived, stored securely)
+- **Auto-refresh**: Background token renewal keeps user logged in
+- **Why**: More secure for customer data - stolen access token only valid 15 minutes
+
+**Future Fields** (will be added when features are built):
+
+- `department_id`, `role_id` - When org structure is implemented
+- `permissions` - When RBAC is implemented (Phase 2)
+- `account_ids` - When multi-account access is needed (e.g., limit user to specific Airbnb/Hostaway accounts)
+- `project_ids` - When project-based access control is implemented
+- `user_type` - When AI agents or service accounts are added
 
 ---
 
 ### Pattern 2: Service-to-Service Authentication (API Keys)
 
-**Use Case**: work-service → sync-airbnb, automation-service → sync-hostaway
+**Use Case**: analytics-service → sync-airbnb, analytics-service → sync-hostaway (FUTURE - not implemented yet)
 
 **How It Works**:
 
@@ -85,19 +101,48 @@ This platform is a **business operating system** that manages sensitive business
 - **Simple**: Easy to implement and manage
 - **Fast**: No JWT encoding/decoding overhead
 - **Internal**: Only for trusted internal services
-- **Sufficient for Phase 1**: Good enough for initial service mesh
+- **Sufficient for Phase 1**: Good enough for containers on same network (nook)
 
-**Current Implementation**: ✅ Implementing Now (Phase 1)
+**Current Implementation**: ⏳ NOT IMPLEMENTED YET - No service-to-service calls exist yet
 
-**Example**:
+**Current Architecture** (Phase 1):
+
+```
+UI → org-service (JWT)
+UI → sync-airbnb (JWT)
+UI → sync-hostaway (JWT)
+```
+
+All services validate JWT and filter by org_id. No service-to-service calls yet.
+
+**Future Architecture** (Phase 2 - if UI performance becomes issue):
+
+```
+UI → analytics-service (JWT)
+  ↓
+analytics-service → sync-airbnb (API key)
+analytics-service → sync-hostaway (API key)
+```
+
+Analytics service aggregates data from sync services, caches it, returns combined results to UI.
+
+**Example** (when implemented):
 
 ```python
-# Service A calling Service B
+# analytics-service calling sync-airbnb
 headers = {
     "X-API-Key": SYNC_AIRBNB_API_KEY
 }
-response = requests.post("http://sync-airbnb/internal/sync", headers=headers)
+response = requests.get("http://sync-airbnb/internal/listings", headers=headers)
 ```
+
+**Note on Background Jobs**:
+
+- sync-airbnb has scheduled jobs (e.g., nightly scrape at 10:05 PM)
+- sync-hostaway has scheduled jobs (polling Hostaway API)
+- These jobs write directly to their own databases (managed by Alembic)
+- No authentication needed for the job itself (runs in container)
+- Jobs don't call other services, so no API keys needed yet
 
 **Limitations**:
 
@@ -126,12 +171,14 @@ response = requests.post("http://sync-airbnb/internal/sync", headers=headers)
 
 **Current Implementation**: ⏳ Future (Phase 2+)
 
+**Current Deployment**: Containers on nook, communicating via Docker network - API keys sufficient
+
 **When to implement**:
 
-- Production deployment
-- When services communicate over network (not localhost)
-- When handling highly sensitive data
-- When regulatory compliance requires it
+- Before deploying to Kubernetes (whether on-prem server or cloud)
+- Can be configured via Kubernetes service mesh (Istio) or NetworkPolicies
+- NOT implemented in application code - infrastructure configuration
+- Phase 2: Before onboarding paying customers
 
 ---
 
@@ -194,7 +241,7 @@ response = requests.post("http://sync-airbnb/internal/sync", headers=headers)
 - ⏳ OAuth2 - future integrations
 - ⏳ **Secret Store** (Vault, AWS Secrets Manager) - production requirement
 
-**Security Note**: Currently storing external credentials (Airbnb cookies, Hostaway API keys) encrypted in database. This is acceptable for Phase 1 development, but **MUST** migrate to dedicated secret store (HashiCorp Vault, AWS Secrets Manager, Google Secret Manager) before production deployment. See Secrets Management section below.
+**Security Note**: Currently storing external credentials (Airbnb cookies, Hostaway API keys) encrypted in database. This is acceptable for solo use (Stephen's own credentials), but **MUST** migrate to dedicated secret store (HashiCorp Vault, AWS Secrets Manager, Google Secret Manager) before onboarding first paying customer. See Secrets Management section below.
 
 ---
 
@@ -220,44 +267,63 @@ response = requests.post("http://sync-airbnb/internal/sync", headers=headers)
 │   Browser   │ Stores JWT in localStorage
 │     UI      │
 └──────┬──────┘
-       │ 3. API requests with JWT
+       │ 3. API requests with JWT (all direct from UI)
        ├──────────────────────┬──────────────────────┐
        ↓                      ↓                      ↓
 ┌──────────────┐       ┌──────────────┐      ┌──────────────┐
-│ sync-airbnb  │       │sync-hostaway │      │work-service  │
+│ org-service  │       │sync-airbnb   │      │sync-hostaway │
 │- Validate JWT│       │- Validate JWT│      │- Validate JWT│
 │- Extract org │       │- Extract org │      │- Extract org │
 └──────────────┘       └──────────────┘      └──────────────┘
 
-Service-to-Service (Internal):
-┌──────────────┐  X-API-Key  ┌──────────────┐
-│work-service  │─────────────>│ sync-airbnb  │
-│              │             │              │
-└──────────────┘             └──────────────┘
+Background Jobs (No Authentication):
+┌──────────────┐
+│ sync-airbnb  │  Scheduled job (10:05 PM nightly)
+│ container    │  Writes to own database (Alembic)
+└──────────────┘
+
+┌──────────────┐
+│sync-hostaway │  Scheduled job (polling Hostaway API)
+│ container    │  Writes to own database (Alembic)
+└──────────────┘
+
+Service-to-Service (FUTURE - not implemented yet):
+┌──────────────────┐  X-API-Key  ┌──────────────┐
+│analytics-service │─────────────>│ sync-airbnb  │
+│  (future)        │             │              │
+└──────────────────┘             └──────────────┘
 ```
+
+**Key Points**:
+
+- UI talks directly to ALL services via JWT
+- No service-to-service calls exist yet
+- Background jobs run in containers, write to own databases, don't call other services
+- Future: analytics-service MAY aggregate data if UI performance becomes issue
 
 ### What Gets Implemented Where
 
-**org-service**:
+**org-service** (IMPLEMENTING NOW):
 
 - ✅ Google OAuth integration
-- ✅ JWT generation with full payload
-- ✅ User/org/department/role management
+- ✅ JWT generation with minimal Phase 1 payload (sub, org_id, email, is_owner, exp)
+- ⏳ User/org management (departments/roles are FUTURE)
 - ✅ JWT validation middleware (for its own routes)
 
-**sync-airbnb, sync-hostaway, work-service** (all data/backend services):
+**sync-airbnb, sync-hostaway** (data services - IMPLEMENTING NOW):
 
 - ✅ JWT validation middleware
 - ✅ Extract org_id from JWT
-- ✅ Filter all queries by org_id
-- ✅ API key validation for internal endpoints
+- ✅ Filter all queries by org_id (CRITICAL for multi-tenancy)
+- ⏳ API key validation for internal endpoints (FUTURE - when analytics-service exists)
 
-**UI (autohost-ui)**:
+**UI (autohost - this repo - IMPLEMENTING NOW)**:
 
 - ✅ Google OAuth login flow
 - ✅ Store JWT in localStorage
-- ✅ Include JWT in Authorization header
-- ✅ Handle token expiration/refresh
+- ✅ Include JWT in Authorization header for ALL requests (org-service, sync-airbnb, sync-hostaway)
+- ✅ Handle token expiration (redirect to login on 401, no refresh token in Phase 1)
+- ⏳ Token refresh (FUTURE - Phase 2)
 
 ---
 
@@ -304,46 +370,92 @@ ALL database queries filter by org_id
 
 ## Implementation Roadmap
 
-### Phase 1: JWT + API Keys (Implementing Now)
+### Phase 1: JWT Authentication (Implementing Now)
 
-**Timeline**: Immediate
-**Services**: org-service, sync-airbnb, sync-hostaway, work-service (when built)
+**Timeline**: Immediate (solo use - Stephen)
+**Services**: org-service, sync-airbnb, sync-hostaway
+**UI**: autohost (this repo)
 
 **Deliverables**:
 
-1. org-service generates JWTs with full payload
-2. All services validate JWTs
-3. All services filter by org_id
-4. Internal endpoints use API keys
+1. **org-service**: Google OAuth + JWT generation
+   - Hardcode org_id: `11111111-1111-1111-1111-111111111111` (for now)
+   - JWT payload: `{sub, org_id, email, is_owner, exp}`
+   - No database needed yet (just hardcoded values)
+   - Return JWT after Google OAuth succeeds
+
+2. **sync-airbnb**: JWT validation + org_id filtering
+   - JWT validation middleware (extract org_id from token)
+   - **Hardcode org_id in background jobs**: When scraping Airbnb, set `org_id = "11111111-1111-1111-1111-111111111111"` on all INSERTs
+   - **Backfill existing data**: `UPDATE <table> SET org_id = '11111111-1111-1111-1111-111111111111' WHERE org_id IS NULL`
+   - Filter ALL queries by org_id from JWT
+
+3. **sync-hostaway**: JWT validation + org_id filtering
+   - JWT validation middleware (extract org_id from token)
+   - **Hardcode org_id in background jobs**: When syncing Hostaway, set `org_id = "11111111-1111-1111-1111-111111111111"` on all INSERTs
+   - **Backfill existing data**: `UPDATE <table> SET org_id = '11111111-1111-1111-1111-111111111111' WHERE org_id IS NULL`
+   - Filter ALL queries by org_id from JWT
+
+4. **autohost UI**: Google OAuth login + JWT storage
+   - Google OAuth login flow
+   - Store JWT in localStorage
+   - Include `Authorization: Bearer <token>` header on ALL requests to all services
+   - Redirect to login on 401
+
+5. **Token TTL**: 7 days (no refresh token yet)
+
+**Implementation Notes**:
+
+- Same hardcoded `org_id` UUID across ALL services (org-service, sync-airbnb, sync-hostaway)
+- Multi-tenant architecture from day 1, just with hardcoded org_id for solo use
+- When adding second customer: Remove hardcoded org_id, add organizations table, look up org_id from database
 
 **Success Criteria**:
 
-- User can log in via Google OAuth
-- User can access their data across all services
-- Users from different orgs cannot see each other's data
-- Services can communicate internally via API keys
+- User (Stephen) can log in via Google OAuth
+- JWT works across all services (org-service, sync-airbnb, sync-hostaway)
+- All data filtered by hardcoded org_id (multi-tenant ready)
+- Token expires after 7 days, redirects to login
 
 ---
 
-### Phase 2: Enhanced Security (Production Hardening)
+### Phase 2: Production Hardening (Before First Customer)
 
-**Timeline**: Before production launch
-**When**: After Phase 1 works, before opening to customers
+**Timeline**: Before onboarding first paying customer (not Stephen, not property manager)
+**Trigger**: When ready to onboard external users
 
 **Deliverables**:
 
-1. **mTLS** for service-to-service communication
-2. **RBAC permissions** - JWT permissions array populated
-3. **Token refresh** - Automatic JWT renewal without re-login
-4. **Rate limiting** - Per org_id, per endpoint
-5. **Audit logging** - Track all access by user/org
+1. **Token Refresh** - Implement refresh token flow
+   - Access token: 15 minutes (short-lived)
+   - Refresh token: 30 days (long-lived, stored securely)
+   - Auto-refresh in background (user stays logged in)
+   - More secure for customer data
+
+2. **Secret Store Migration** - Move external credentials from database to secret store
+   - HashiCorp Vault, AWS Secrets Manager, or Google Secret Manager
+   - Migrate Airbnb cookies, Hostaway API keys
+   - Stop storing secrets in database
+
+3. **mTLS** - Service-to-service authentication (if deploying to Kubernetes)
+   - Configure via Kubernetes service mesh (Istio) or NetworkPolicies
+   - Not implemented in code - infrastructure config
+
+4. **Rate Limiting** - Protect against abuse
+   - Per org_id, per endpoint
+   - Prevent single org from overwhelming system
+
+5. **Audit Logging** - Track all access
+   - Log user/org access for compliance
+   - Support security investigations
 
 **Success Criteria**:
 
-- Services communicate over mTLS
-- Users can only access data their role allows
-- Tokens refresh automatically
-- System logs all access for compliance
+- Tokens refresh automatically (user never logged out)
+- External credentials stored in secret store (not database)
+- Services communicate securely (mTLS if on Kubernetes)
+- Rate limits prevent abuse
+- All access logged for auditability
 
 ---
 
@@ -370,7 +482,76 @@ ALL database queries filter by org_id
 
 ## Service Implementation Prompts
 
-### Prompt for Data Services (sync-airbnb, sync-hostaway, work-service)
+### Prompt for org-service
+
+**Paste this into org-service chat**:
+
+````
+Implement Google OAuth and JWT generation in org-service:
+
+**Context**: org-service is the central authentication authority for the platform. For Phase 1 (solo use), we're keeping it minimal with hardcoded values.
+
+**Phase 1 - Minimal Implementation**:
+- Google OAuth login (user clicks "Login with Google")
+- Generate JWT with hardcoded org_id
+- No database needed yet (departments, roles, users tables come later)
+
+**Hardcoded Values**:
+- org_id: `11111111-1111-1111-1111-111111111111`
+- is_owner: `true` (always)
+
+**Implementation Requirements**:
+
+1. **Google OAuth Flow**:
+   - Set up Google OAuth client (Google Cloud Console)
+   - `/auth/google` endpoint redirects to Google
+   - `/auth/google/callback` endpoint handles OAuth callback
+   - Extract user info (email, Google user ID)
+
+2. **JWT Generation**:
+   - After successful OAuth, generate JWT
+   - Payload (Phase 1 minimal):
+     ```
+     {
+       "sub": google_user_id,
+       "org_id": "11111111-1111-1111-1111-111111111111",  # HARDCODED
+       "email": user_email,
+       "is_owner": true,  # HARDCODED
+       "exp": current_time + 7 days
+     }
+     ```
+   - Sign with JWT_SECRET_KEY (HS256 algorithm)
+   - Return JWT to UI (via redirect or JSON response)
+
+3. **JWT Validation Middleware** (for org-service's own routes):
+   - Extract token from Authorization header
+   - Validate signature and expiration
+   - Attach payload to request.state
+
+**Environment Variables**:
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+- JWT_SECRET_KEY (generate random 256-bit key)
+- JWT_ALGORITHM=HS256
+- HARDCODED_ORG_ID=11111111-1111-1111-1111-111111111111
+
+**Testing**:
+- User can log in via Google OAuth
+- JWT is returned after successful login
+- JWT contains hardcoded org_id
+- JWT expires after 7 days
+
+**Phase 2 (Future)**:
+- Add organizations, users tables
+- Look up org_id from database based on user email
+- Support multiple orgs
+
+Please implement this following FastAPI best practices.
+````
+
+---
+
+### Prompt for Data Services (sync-airbnb, sync-hostaway)
 
 **Paste this into each service chat**:
 
@@ -382,26 +563,26 @@ Implement JWT authentication in this service based on the platform authenticatio
 1. Validate JWTs on every request (except health checks)
 2. Extract org_id from JWT and attach to request.state
 3. Filter ALL database queries by org_id for multi-tenancy
-4. Provide internal endpoints protected by API key
 
-**JWT Structure** (from org-service):
+**Phase 1 - Hardcoded org_id**:
+For solo use (Stephen only), we're hardcoding org_id across all services:
+- Hardcoded org_id: `11111111-1111-1111-1111-111111111111`
+- Background jobs: Set this org_id on all INSERTs
+- Backfill existing data: `UPDATE <table> SET org_id = '11111111-1111-1111-1111-111111111111' WHERE org_id IS NULL`
+
+**JWT Structure** (from org-service - Phase 1 minimal payload):
 {
-  "sub": "user_id",
-  "org_id": "uuid",          # CRITICAL - filter all queries by this
-  "department_id": "uuid",
-  "role_id": "uuid",
-  "is_owner": boolean,
+  "sub": "user_id",          # Google user ID
+  "org_id": "uuid",          # CRITICAL - hardcoded "11111111-1111-1111-1111-111111111111" for now
   "email": "string",
-  "permissions": [],         # Empty for now
-  "account_ids": [],         # Empty for now
-  "project_ids": [],         # Empty for now
-  "exp": timestamp
+  "is_owner": boolean,       # Always true for now
+  "exp": timestamp           # 7 days from issue
 }
 
 **Environment Variables Needed**:
 - JWT_SECRET_KEY (must match org-service)
 - JWT_ALGORITHM=HS256
-- INTERNAL_API_KEY (for service-to-service auth)
+- HARDCODED_ORG_ID=11111111-1111-1111-1111-111111111111
 
 **Implementation Requirements**:
 1. Create utils/jwt.py with decode_jwt() function
@@ -412,19 +593,20 @@ Implement JWT authentication in this service based on the platform authenticatio
    - Attaches org_id to request.state.org_id
 3. Register middleware in main.py
 4. Update ALL database queries to filter by org_id
-5. Create internal endpoints with API key validation
+5. Update background jobs to set HARDCODED_ORG_ID on all INSERTs
+6. Backfill existing data with HARDCODED_ORG_ID
 
 **Testing**:
 - Without JWT: requests should return 401
 - With valid JWT: requests should succeed and return only that org's data
-- With JWT from different org: should NOT see other org's data
+- Verify all data has org_id set
 
 Please implement this authentication system following FastAPI best practices.
 ```
 
 ---
 
-### Prompt for UI (autohost-ui)
+### Prompt for UI (autohost)
 
 **Paste this into UI chat**:
 
@@ -450,12 +632,12 @@ Implement JWT authentication in the UI based on the platform authentication arch
 1. Create auth context/provider
 2. Store JWT in localStorage (key: "auth_token")
 3. Create axios/fetch interceptor to add Authorization header
-4. Handle token expiration (24 hours)
+4. Handle token expiration (7 days - Phase 1, will add refresh tokens in Phase 2)
 5. Redirect to login on 401 response
 6. Clear token on logout
 
 **API Calls**:
-All requests to backend services (org-service, sync-airbnb, work-service) must include:
+All requests to backend services (org-service, sync-airbnb, sync-hostaway) must include:
 ```
 
 headers: {

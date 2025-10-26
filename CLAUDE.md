@@ -5,7 +5,7 @@
 1. Read [README.md](README.md) for project overview
 2. Read [docs/product/](docs/product/) to understand the platform:
    - **PRODUCT_STORY.md** - Why this exists, market opportunity
-   - **SYSTEM_ARCHITECTURE.md** - Technical architecture
+   - **PLATFORM_VISION.md** - High-level platform vision
    - **MY_STORY.md** - Founder context
 
 ## Current State
