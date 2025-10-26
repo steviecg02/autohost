@@ -1,0 +1,7 @@
+# Layout components
+# Components that define page structure
+# Examples:
+# - Header.tsx (top nav bar)
+# - Sidebar.tsx (side navigation)
+# - MobileNav.tsx (mobile menu)
+# - Footer.tsx

@@ -1,0 +1,8 @@
+# Generic UI primitives
+# Reusable components used across the app
+# Examples:
+# - Button.tsx
+# - Card.tsx
+# - Input.tsx
+# - Modal.tsx
+# - Dropdown.tsx

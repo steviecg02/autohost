@@ -1,0 +1,5 @@
+# Utilities & business logic
+# Examples:
+# - api.ts (API client)
+# - auth.ts (Auth utilities)
+# - validation.ts (Validation functions)
