@@ -8,9 +8,9 @@
 
 ### Authentication Architecture
 
-Complete authentication architecture has been documented in the hostos-ui repository:
+Complete authentication architecture has been documented in the autohost-ui repository:
 
-- **[docs/planning/authentication-security-architecture.md](https://github.com/[your-username]/hostos-ui/blob/main/docs/planning/authentication-security-architecture.md)**
+- **[docs/planning/authentication-security-architecture.md](https://github.com/[your-username]/autohost-ui/blob/main/docs/planning/authentication-security-architecture.md)**
 
 **Key Decisions**:
 
@@ -23,7 +23,7 @@ Complete authentication architecture has been documented in the hostos-ui reposi
 
 Tasks, workflows, projects, AI agents, and automation have been documented (as PROPOSALS, not finalized):
 
-- **[docs/planning/future-architecture-work-management.md](https://github.com/[your-username]/hostos-ui/blob/main/docs/planning/future-architecture-work-management.md)**
+- **[docs/planning/future-architecture-work-management.md](https://github.com/[your-username]/autohost-ui/blob/main/docs/planning/future-architecture-work-management.md)**
 
 **Decision**: These features will live in a separate work-service (NOT in org-service). Don't build them yet.
 
@@ -327,8 +327,8 @@ is_owner = request.state.user.get("is_owner")
 
 If you have questions about:
 
-- **Authentication patterns**: See authentication-security-architecture.md in hostos-ui
-- **Future features**: See future-architecture-work-management.md in hostos-ui (but don't build yet)
+- **Authentication patterns**: See authentication-security-architecture.md in autohost-ui
+- **Future features**: See future-architecture-work-management.md in autohost-ui (but don't build yet)
 - **What to build now**: Follow this document (P0 only)
 
 ---

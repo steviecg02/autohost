@@ -252,7 +252,7 @@ Service-to-Service (Internal):
 - ✅ Filter all queries by org_id
 - ✅ API key validation for internal endpoints
 
-**UI (hostos-ui)**:
+**UI (autohost-ui)**:
 
 - ✅ Google OAuth login flow
 - ✅ Store JWT in localStorage
@@ -424,7 +424,7 @@ Please implement this authentication system following FastAPI best practices.
 
 ---
 
-### Prompt for UI (hostos-ui)
+### Prompt for UI (autohost-ui)
 
 **Paste this into UI chat**:
 

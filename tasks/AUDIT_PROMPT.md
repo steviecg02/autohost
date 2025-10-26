@@ -1,4 +1,4 @@
-# HostOS UI Audit Prompt
+# AutoHost UI Audit Prompt
 
 **Purpose**: Review the two planning documents that were just added to understand the product architecture and security approach.
 

@@ -1,12 +1,12 @@
-# HostOS UI
+# AutoHost UI
 
-The user interface for an operating system that creates businesses that run themselves.
+Your vacation rental business running itself.
 
 ## What This Is
 
-This is the frontend for an intelligent platform that combines structure, automation, AI agents, data consolidation, and embedded expertise to eliminate the need for operational staff.
+AutoHost is an intelligent platform for short-term rental operators that combines structure, automation, AI agents, data consolidation, and embedded revenue management expertise.
 
-Not analytics. Not dashboards. A complete operating system for operationally-intensive businesses.
+Replace $600+/month in fragmented tools and $10k+ in courses. Get your 3 hours back every day.
 
 ## Understanding the Platform
 
@@ -41,7 +41,7 @@ Read these documents to understand what you're building:
 - **Critical need:** Push notifications for operational alerts and approvals
 - iOS Safari does NOT support web push notifications (Apple restriction)
 - React Native provides reliable push notifications on both iOS and Android
-- Separate `hostos-mobile` repository (planned per architecture)
+- Separate `autohost-mobile` repository (planned per architecture)
 - Shares TypeScript types and business logic with this web app
 - Provides native features: push notifications, offline mode, camera access
 - Single codebase for both iOS and Android
@@ -140,7 +140,7 @@ See [tasks/TYPESCRIPT-CODE-STANDARDS.md](tasks/TYPESCRIPT-CODE-STANDARDS.md) for
 This repository follows Next.js App Router conventions:
 
 ```
-hostos-ui/
+autohost-ui/
 ├── app/                          # Pages & routing (Next.js App Router)
 │   ├── layout.tsx                # Root layout
 │   ├── page.tsx                  # Landing page (/)

@@ -1,9 +1,9 @@
 {
-  "name": "hostos-ui",
+  "name": "autohost-ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "HostOS - Operating system for operationally-intensive businesses that run themselves",
+  "description": "AutoHost - Your vacation rental business running itself",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

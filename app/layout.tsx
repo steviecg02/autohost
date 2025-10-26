@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'HostOS',
-  description: 'Operating system for operationally-intensive businesses that run themselves',
+  title: 'AutoHost',
+  description: 'Your vacation rental business running itself',
   viewport: {
     width: 'device-width',
     initialScale: 1,

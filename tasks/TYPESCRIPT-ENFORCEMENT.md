@@ -485,12 +485,12 @@ jobs:
 
 ---
 
-## 8. How to Apply to Existing Repo (hostos-ui)
+## 8. How to Apply to Existing Repo (autohost-ui)
 
 ### Step 1: Copy Files
 
 ```bash
-cd ~/Git/hostos-ui
+cd ~/Git/autohost-ui
 
 # Copy standards
 cp ~/Git/control-room/resources/TYPESCRIPT-CODE-STANDARDS.md .
@@ -642,10 +642,10 @@ clean:  ## Clean up
 
 ---
 
-## 10. Quick Action Plan for hostos-ui
+## 10. Quick Action Plan for autohost-ui
 
 ```bash
-cd ~/Git/hostos-ui
+cd ~/Git/autohost-ui
 
 # 1. Copy files
 cp ~/Git/control-room/resources/TYPESCRIPT-CODE-STANDARDS.md .
